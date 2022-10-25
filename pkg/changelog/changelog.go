@@ -82,6 +82,7 @@ func createFilePath(path string) string {
 
 func check(e error) {
 	if e != nil {
+		fmt.Println("Error occurred. Exiting...")
 		panic(e)
 	}
 }
@@ -89,13 +90,16 @@ func check(e error) {
 func Build(c *Config) {
 	config := newConfig(c)
 
+	fmt.Println("Getting repository...")
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: config.RepositoryPath,
 	})
 
 	check(err)
 
-	f, err := os.Create(createFilePath(config.OutputPath))
+	fmt.Println("Creating CHANGELOG.md...")
+	path := createFilePath(config.OutputPath)
+	f, err := os.Create(path)
 	check(err)
 
 	defer f.Close()
@@ -107,6 +111,7 @@ func Build(c *Config) {
 	cIter, err := r.Log(&git.LogOptions{})
 	check(err)
 
+	fmt.Println("Adding markdown...")
 	err = cIter.ForEach(func(c *object.Commit) error {
 		formattedDate := formatDate(c.String())
 		markdown := formatMessage(c.Message)
@@ -128,4 +133,5 @@ func Build(c *Config) {
 	w.Flush()
 
 	check(err)
+	fmt.Printf("%s created\n", path)
 }
