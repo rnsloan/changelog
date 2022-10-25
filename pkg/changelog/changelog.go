@@ -117,9 +117,9 @@ func Build(c *Config) {
 			currentDate = formattedDate
 		}
 
-		_, err2 := w.WriteString(markdown)
-		if err2 != nil {
-			return err2
+		_, e := w.WriteString(markdown)
+		if e != nil {
+			return e
 		}
 
 		return nil
