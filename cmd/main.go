@@ -7,7 +7,6 @@ import (
 )
 
 /* TODO
-- tests
 - readme
 - add large flag: git gc && git count-objects -vH (> 200000 git objects)
 */
