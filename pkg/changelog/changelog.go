@@ -20,6 +20,8 @@ type Config struct {
 	RepositoryPath string
 	// output location for CHANGELOG.md. Defaults to current directory
 	OutputPath string
+	// start all commit message lines with a hyphen character. Default true
+	FormatMessage bool
 }
 
 func newConfig(userConfig *Config) Config {
@@ -29,7 +31,7 @@ func newConfig(userConfig *Config) Config {
 	}
 	check(err)
 
-	c := Config{RepositoryPath: path, OutputPath: ""}
+	c := Config{RepositoryPath: path, OutputPath: "", FormatMessage: true}
 
 	if userConfig.RepositoryPath != "" {
 		c.RepositoryPath = userConfig.RepositoryPath
@@ -38,6 +40,10 @@ func newConfig(userConfig *Config) Config {
 	if userConfig.OutputPath != "" {
 		c.OutputPath = userConfig.OutputPath
 	}
+	if !userConfig.FormatMessage {
+		c.FormatMessage = false
+	}
+
 	return c
 }
 
@@ -90,7 +96,7 @@ func check(e error) {
 func Build(c *Config) {
 	config := newConfig(c)
 
-	fmt.Println("Getting repository...")
+	fmt.Printf("Getting repository: %s...\n", config.RepositoryPath)
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: config.RepositoryPath,
 	})
@@ -114,7 +120,11 @@ func Build(c *Config) {
 	fmt.Println("Adding markdown...")
 	err = cIter.ForEach(func(c *object.Commit) error {
 		formattedDate := formatDate(c.String())
-		markdown := formatMessage(c.Message)
+		markdown := c.Message
+
+		if config.FormatMessage {
+			markdown = formatMessage(c.Message)
+		}
 
 		if formattedDate != currentDate {
 			// start a new markdown section on new date
