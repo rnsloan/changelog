@@ -2,6 +2,14 @@ package changelog
 
 import "testing"
 
+/*
+// go test -cpuprofile cpu.prof -memprofile mem.prof -bench .
+func TestPerformance(t *testing.T) {
+	cloneRepository(&Config{RepositoryPath: "https://github.com/torvalds/linux.git", Large: true})
+	fmt.Println("COMPLETE")
+}
+*/
+
 func TestCreateFile(t *testing.T) {
 	want := "foo/" + FileName
 	got := createFile("foo")
