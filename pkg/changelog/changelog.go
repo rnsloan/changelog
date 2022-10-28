@@ -14,6 +14,7 @@ import (
 )
 
 const FileName = "CHANGELOG.md"
+const TempDirectoryName = "changelog-file-generation"
 
 type Config struct {
 	// local file path or remote URL to git repository. Defaults to current directory
@@ -22,6 +23,8 @@ type Config struct {
 	OutputPath string
 	// start all commit message lines with a hyphen character. Default true
 	FormatMessage bool
+	// Clone the repository temporarily to disk instead of in-memory. Recommended for repositories where 'git gc && git count-objects -vH' is > 200000 git objects
+	Large bool
 }
 
 func newConfig(userConfig *Config) Config {
@@ -31,7 +34,7 @@ func newConfig(userConfig *Config) Config {
 	}
 	check(err)
 
-	c := Config{RepositoryPath: path, OutputPath: "", FormatMessage: true}
+	c := Config{RepositoryPath: path, OutputPath: "", FormatMessage: true, Large: false}
 
 	if userConfig.RepositoryPath != "" {
 		c.RepositoryPath = userConfig.RepositoryPath
@@ -40,8 +43,13 @@ func newConfig(userConfig *Config) Config {
 	if userConfig.OutputPath != "" {
 		c.OutputPath = userConfig.OutputPath
 	}
+
 	if !userConfig.FormatMessage {
 		c.FormatMessage = false
+	}
+
+	if userConfig.Large {
+		c.Large = true
 	}
 
 	return c
@@ -59,7 +67,7 @@ func formatDate(commit string) string {
 }
 
 func formatMessage(input string) string {
-	regBulletPoint := regexp.MustCompile(`^(-|\*)\s?`)
+	regBulletPoint := regexp.MustCompile(`^([-*])\s?`)
 	lines := strings.Split(input, "\n")
 	formattedLines := make([]string, len(lines))
 
@@ -78,12 +86,42 @@ func formatMessage(input string) string {
 	return strings.Join(formattedLines, "\n")
 }
 
-func createFilePath(path string) string {
+func createFile(path string) string {
 	if path != "" && !strings.HasSuffix(path, "/") {
 		return path + "/" + FileName
 	}
 	return path + FileName
 
+}
+
+func cloneRepository(config *Config) (*git.Repository, string, error) {
+	var r *git.Repository
+	var err error
+	dir := ""
+
+	if config.Large {
+		dir, err = os.MkdirTemp("", TempDirectoryName)
+
+		if err != nil {
+			return nil, "", err
+		}
+
+		r, err = git.PlainClone(dir, false, &git.CloneOptions{
+			URL:      config.RepositoryPath,
+			Progress: os.Stdout,
+		})
+	} else {
+		r, err = git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+			URL:      config.RepositoryPath,
+			Progress: os.Stdout,
+		})
+	}
+
+	if err != nil && dir != "" {
+		os.RemoveAll(dir)
+	}
+
+	return r, dir, err
 }
 
 func check(e error) {
@@ -97,21 +135,26 @@ func Build(c *Config) {
 	config := newConfig(c)
 
 	fmt.Printf("Getting repository: %s...\n", config.RepositoryPath)
-	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-		URL: config.RepositoryPath,
-	})
+	r, dir, err := cloneRepository(&config)
+
+	if dir != "" {
+		defer func() {
+			err = os.RemoveAll(dir)
+		}()
+	}
 
 	check(err)
 
 	fmt.Println("Creating CHANGELOG.md...")
-	path := createFilePath(config.OutputPath)
-	f, err := os.Create(path)
+	file := createFile(config.OutputPath)
+	f, err := os.Create(file)
 	check(err)
 
 	defer f.Close()
 
-	w := bufio.NewWriter(f)
-	w.WriteString("# Changelog\n")
+	buffer := bufio.NewWriter(f)
+	_, err = buffer.WriteString("# Changelog\n")
+	check(err)
 
 	var currentDate string
 	cIter, err := r.Log(&git.LogOptions{})
@@ -132,7 +175,7 @@ func Build(c *Config) {
 			currentDate = formattedDate
 		}
 
-		_, e := w.WriteString(markdown)
+		_, e := buffer.WriteString(markdown)
 		if e != nil {
 			return e
 		}
@@ -140,8 +183,8 @@ func Build(c *Config) {
 		return nil
 	})
 
-	w.Flush()
+	err = buffer.Flush()
 
 	check(err)
-	fmt.Printf("%s created\n", path)
+	fmt.Printf("%s created\n", file)
 }

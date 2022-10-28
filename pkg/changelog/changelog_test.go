@@ -2,9 +2,9 @@ package changelog
 
 import "testing"
 
-func TestCreateFilePath(t *testing.T) {
+func TestCreateFile(t *testing.T) {
 	want := "foo/" + FileName
-	got := createFilePath("foo")
+	got := createFile("foo")
 
 	if got != want {
 		t.Errorf("want file path to be %s Got: %s", want, got)
