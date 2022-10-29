@@ -3,8 +3,10 @@ package changelog
 import (
 	"bufio"
 	"fmt"
+	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/storage"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"log"
 	"os"
@@ -25,6 +27,20 @@ type Config struct {
 	FormatMessage bool
 	// Clone the repository temporarily to disk instead of in-memory. Recommended for repositories where 'git gc && git count-objects -vH' is > 200000 git objects
 	Large bool
+}
+
+type CloneRepositories interface {
+	PlainClone(path string, isBare bool, o *git.CloneOptions) (*git.Repository, error)
+	Clone(s storage.Storer, worktree billy.Filesystem, o *git.CloneOptions) (*git.Repository, error)
+}
+
+type Clone struct{}
+
+func (c Clone) PlainClone(path string, isBare bool, o *git.CloneOptions) (*git.Repository, error) {
+	return git.PlainClone(path, isBare, o)
+}
+func (c Clone) Clone(s storage.Storer, worktree billy.Filesystem, o *git.CloneOptions) (*git.Repository, error) {
+	return git.Clone(s, worktree, o)
 }
 
 func newConfig(userConfig *Config) Config {
@@ -94,7 +110,7 @@ func createFile(path string) string {
 
 }
 
-func cloneRepository(config *Config) (*git.Repository, string, error) {
+func cloneRepository(config *Config, clone CloneRepositories) (*git.Repository, string, error) {
 	var r *git.Repository
 	var err error
 	dir := ""
@@ -106,12 +122,12 @@ func cloneRepository(config *Config) (*git.Repository, string, error) {
 			return nil, "", err
 		}
 
-		r, err = git.PlainClone(dir, false, &git.CloneOptions{
+		r, err = clone.PlainClone(dir, false, &git.CloneOptions{
 			URL:      config.RepositoryPath,
 			Progress: os.Stdout,
 		})
 	} else {
-		r, err = git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		r, err = clone.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 			URL:      config.RepositoryPath,
 			Progress: os.Stdout,
 		})
@@ -135,7 +151,7 @@ func Build(c *Config) {
 	config := newConfig(c)
 
 	fmt.Printf("Getting repository: %s...\n", config.RepositoryPath)
-	r, dir, err := cloneRepository(&config)
+	r, dir, err := cloneRepository(&config, &Clone{})
 
 	if dir != "" {
 		defer func() {

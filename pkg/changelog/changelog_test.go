@@ -1,6 +1,11 @@
 package changelog
 
-import "testing"
+import (
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/storage"
+	"testing"
+)
 
 /*
 // go test -cpuprofile cpu.prof -memprofile mem.prof -bench .
@@ -9,6 +14,38 @@ func TestPerformance(t *testing.T) {
 	fmt.Println("COMPLETE")
 }
 */
+
+const PC = "PlainClone"
+const C = "Clone"
+
+var funcName string
+
+type MockClone struct{}
+
+func (c MockClone) PlainClone(path string, isBare bool, o *git.CloneOptions) (*git.Repository, error) {
+	funcName = PC
+	return nil, nil
+}
+func (c MockClone) Clone(s storage.Storer, worktree billy.Filesystem, o *git.CloneOptions) (*git.Repository, error) {
+	funcName = C
+	return nil, nil
+}
+
+func TestCloneRepository(t *testing.T) {
+	c := MockClone{}
+
+	cloneRepository(&Config{}, c)
+
+	if funcName != C {
+		t.Errorf("wanted function called to be %s, Got: %s", C, funcName)
+	}
+
+	cloneRepository(&Config{Large: true}, c)
+
+	if funcName != PC {
+		t.Errorf("wanted function called to be %s, Got: %s", PC, funcName)
+	}
+}
 
 func TestCreateFile(t *testing.T) {
 	want := "foo/" + FileName
