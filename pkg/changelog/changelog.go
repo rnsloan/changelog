@@ -25,7 +25,7 @@ type Config struct {
 	OutputPath string
 	// start all commit message lines with a hyphen character. Default true
 	FormatMessage bool
-	// Clone the repository temporarily to disk instead of in-memory. Recommended for repositories where 'git gc && git count-objects -vH' is > 200000 git objects
+	// Clone the repository temporarily to disk instead of in-memory. Recommended for repositories where 'git gc && git count-objects -vH' is > 200,000 git objects
 	Large bool
 }
 

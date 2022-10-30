@@ -16,7 +16,7 @@ To run: `./changelog`.
 
 `--formatMessage` start all commit message lines with a hyphen character. Default: `true`
 
-`--large` clone the git repository temporarily to disk instead of in-memory. Recommended for repositories with a large history (> 200000 git objects). Default: `false`
+`--large` clone the git repository temporarily to disk instead of in-memory. Recommended for repositories with a large history of over 200,000 git objects (`git gc && git count-objects -vH`). Default: `false`
 
 ## Development
 
