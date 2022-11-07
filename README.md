@@ -41,7 +41,7 @@ Download the appropriate executable from the releases page [https://github.com/r
 
 To run: `./changelog`.
 
-The 'Types of changes' heading is always `Added` and any changes will need to be made manually. 
+The 'Types of changes' heading is always `Added`. 
 
 ### Options
 
