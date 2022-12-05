@@ -1,6 +1,8 @@
 # Changelog
 
-Generate a `CHANGELOG.md` file from the git history of a repository [https://keepachangelog.com/](https://keepachangelog.com/).
+Generate a `CHANGELOG.md` file from the git history of a repository ([https://keepachangelog.com/](https://keepachangelog.com/)).
+
+## Example
 
 ```
 # Changelog
